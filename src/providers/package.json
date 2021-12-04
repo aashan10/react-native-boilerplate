@@ -1,0 +1,4 @@
+{
+    "name": "@app/providers",
+    "main": "index.ts"
+}

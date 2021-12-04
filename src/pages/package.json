@@ -1,0 +1,4 @@
+{
+    "name": "@app/pages",
+    "main": "index.ts"
+}
