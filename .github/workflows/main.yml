@@ -1,0 +1,67 @@
+name: Generate Production Release
+on:
+  workflow_dispatch:
+#  schedule:
+#    - cron: '0 0 1 * *' # release cycle is set to 1st of each month
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+    branches:
+      - master
+      - main
+jobs:
+  test:
+    name: Test Code
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        include:
+          - {build: 'android', platform: 'ubuntu-latest', experimental: false}
+          - {build: 'ios', platform: 'macos-latest', experimental: false}
+    steps:
+      - name: Checkout
+        uses: "actions/checkout@v3"
+      - name: Setup Keystore
+        if: ${{ matrix.build == 'android' }}
+        env:
+          ANDROID_KEYSTORE_NAME: ${{ secrets.ANDROID_KEYSTORE_NAME }}
+          ANDROID_KEYSTORE_CONTENT: ${{ secrets.ANDROID_KEYSTORE_CONTENT }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEYSTORE_GPG_PASSWORD: ${{ secrets.KEYSTORE_GPG_PASSWORD }}
+        run: |
+          chmod +x .github/ci/platforms/android/scripts/setup-keystore.sh && .github/ci/platforms/android/scripts/setup-keystore.sh
+      - name: Setup Node
+        uses: "actions/setup-node@v3"
+        with:
+          node-version: "16"
+      - name: Check Node Version
+        run: node -v
+      - name: Install Node Dependencies
+        run: yarn
+      - name: Setup Java
+        uses: "actions/setup-java@v3"
+        with:
+          distribution: "zulu"
+          java-version: "11"
+      - name: Check JDK Version
+        run: java --version
+      - name: Setup Android SDK
+        uses: "android-actions/setup-android@v2"
+      - name: Build Signed Apk
+        if: ${{ matrix.build == 'android' }}
+        run: |
+          cd android && ./gradlew assembleRelease --no-daemon
+      - name: ZIP AAB Bundles
+        if: ${{ matrix.build == 'android' }}
+        run: |
+          zip -r production-apks.zip ./android/app/build/outputs/apk/release
+      - name: Publish APK
+        if: ${{ matrix.build == 'android' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: production-apks.zip
+          path: production-apks.zip

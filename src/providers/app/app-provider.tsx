@@ -19,9 +19,9 @@ const AppProvider = () => {
                 <LanguageProvider>
                     <ThemeConsumer>
                         {
-                            (context) => {
+                            ({theme}) => {
                                 return (
-                                    <ApplicationProvider {...eva} theme={context.theme}>
+                                    <ApplicationProvider {...eva} theme={theme}>
                                         <StatusBar />
                                         <Layout style={{ height: height, paddingTop: statusBarHeight }}>
                                             <AppNavigator />
